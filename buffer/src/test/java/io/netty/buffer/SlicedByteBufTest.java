@@ -20,7 +20,6 @@ import org.junit.Assume;
 import org.junit.Ignore;
 import org.junit.Test;
 
-import java.io.IOException;
 import java.nio.ByteBuffer;
 
 import static org.junit.Assert.*;
@@ -31,14 +30,18 @@ import static org.junit.Assert.*;
 public class SlicedByteBufTest extends AbstractByteBufTest {
 
     @Override
-    protected ByteBuf newBuffer(int length, int maxCapacity) {
+    protected final ByteBuf newBuffer(int length, int maxCapacity) {
         Assume.assumeTrue(maxCapacity == Integer.MAX_VALUE);
-        ByteBuf buffer = Unpooled.wrappedBuffer(
-                new byte[length * 2], length > 1 ?
-                        PlatformDependent.threadLocalRandom().nextInt(length - 1) + 1 : 0, length);
-        assertEquals(0, buffer.readerIndex());
-        assertEquals(length, buffer.writerIndex());
-        return buffer;
+        int offset = length == 0 ? 0 : PlatformDependent.threadLocalRandom().nextInt(length);
+        ByteBuf buffer = Unpooled.buffer(length * 2);
+        ByteBuf slice = newSlice(buffer, offset, length);
+        assertEquals(0, slice.readerIndex());
+        assertEquals(length, slice.writerIndex());
+        return slice;
+    }
+
+    protected ByteBuf newSlice(ByteBuf buffer, int offset, int length) {
+        return buffer.slice(offset, length);
     }
 
     @Test(expected = NullPointerException.class)
@@ -92,18 +95,6 @@ public class SlicedByteBufTest extends AbstractByteBufTest {
     @Override
     public void testNioBufferExposeOnlyRegion() {
         super.testNioBufferExposeOnlyRegion();
-    }
-
-    @Test(expected = IndexOutOfBoundsException.class)
-    @Override
-    public void testEnsureWritableAfterRelease() {
-        super.testEnsureWritableAfterRelease();
-    }
-
-    @Test(expected = IndexOutOfBoundsException.class)
-    @Override
-    public void testWriteZeroAfterRelease() throws IOException {
-        super.testWriteZeroAfterRelease();
     }
 
     @Test(expected = IndexOutOfBoundsException.class)
@@ -211,5 +202,29 @@ public class SlicedByteBufTest extends AbstractByteBufTest {
         } finally {
             wrappedBuffer.release();
         }
+    }
+
+    @Test(expected = IndexOutOfBoundsException.class)
+    @Override
+    public void testWriteUsAsciiCharSequenceExpand() {
+        super.testWriteUsAsciiCharSequenceExpand();
+    }
+
+    @Test(expected = IndexOutOfBoundsException.class)
+    @Override
+    public void testWriteUtf8CharSequenceExpand() {
+        super.testWriteUtf8CharSequenceExpand();
+    }
+
+    @Test(expected = IndexOutOfBoundsException.class)
+    @Override
+    public void testWriteIso88591CharSequenceExpand() {
+        super.testWriteIso88591CharSequenceExpand();
+    }
+
+    @Test(expected = IndexOutOfBoundsException.class)
+    @Override
+    public void testWriteUtf16CharSequenceExpand() {
+        super.testWriteUtf16CharSequenceExpand();
     }
 }
